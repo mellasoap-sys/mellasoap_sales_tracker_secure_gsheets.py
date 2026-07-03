@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # 1. Page Configuration
 st.set_page_config(page_title="መላ ሳሙና እና ዲተርጀንት ሽያጭ መቆጣጠሪያ", layout="wide")
 
-# 2. Define Default Passwords (In production, these come from st.secrets)
+# 2. Define Default Passwords
 PASSWORDS = {
     "📊 የኤግዚኪቲቭ ዳሽቦርድ (Executive Dashboard)": st.secrets.get("PASSWORD_EXEC", "exec123"),
     "🏭 የኢንቬንተሪ ክፍል (Inventory Dispatch)": st.secrets.get("PASSWORD_INV", "inv123"),
@@ -16,12 +16,10 @@ PASSWORDS = {
 }
 
 # 3. Google Sheets Connection Setup
-# Connects using Streamlit Secrets for the Service Account
 @st.cache_resource
 def get_gspread_client():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        # In Streamlit Cloud, you put the JSON content inside st.secrets["gcp_service_account"]
         creds_dict = dict(st.secrets["gcp_service_account"])
         creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
         return gspread.authorize(creds)
@@ -33,7 +31,6 @@ def get_sheet_data(sheet_name):
     client = get_gspread_client()
     if client:
         try:
-            # Open spreadsheet by URL or ID from secrets
             spreadsheet_url = st.secrets["google_sheet_url"]
             spreadsheet = client.open_by_url(spreadsheet_url)
             worksheet = spreadsheet.worksheet(sheet_name)
@@ -67,33 +64,26 @@ elif password_input != PASSWORDS[role]:
 else:
     st.sidebar.success(f"🔓 በተሳካ ሁኔታ ገብተዋል!")
     
-    # --- Load Configuration from Google Sheets ---
-    # We fall back to defaults if sheet fails to load
     df_settings, worksheet_settings = get_sheet_data("System_Settings")
     
     if not df_settings.empty:
-        # Extract variables from Google Sheet dynamically
         price_200g = float(df_settings.loc[df_settings['Setting'] == 'price_200g', 'Value'].values[0])
         price_100g = float(df_settings.loc[df_settings['Setting'] == 'price_100g', 'Value'].values[0])
         truck_options = df_settings.loc[df_settings['Setting'] == 'trucks', 'Value'].values[0].split(',')
         bank_options = df_settings.loc[df_settings['Setting'] == 'banks', 'Value'].values[0].split(',')
     else:
-        # Fallback Defaults
         price_200g = 1800.0
         price_100g = 1750.0
         truck_options = ["TRUCK-01 (አክሊሉ አሰፋ)", "TRUCK-02 (ዘመን)"]
         bank_options = ["የኢትዮጵያ ንግድ ባንክ (CBE)", "አዋሽ ባንክ (Awash)", "ዳሽን ባንክ (Dashen)", "ወጋገን ባንክ (Wegagen)", "ህብረት ባንክ(Hibret)", "አቢሲኒያ ባንክ(BOA)", "አባይ ባንክ (Abay Bank)"]
 
-    # -------------------------------------------------------------------
     # 1. EXECUTIVE DASHBOARD
-    # -------------------------------------------------------------------
     if role == "📊 የኤግዚኪቲቭ ዳሽቦርድ (Executive Dashboard)":
         st.header("📈 የኩባንያው አጠቃላይ የሽያጭና እንቅስቃሴ ሪፖርት (Executive Panel)")
         
         df_sales, _ = get_sheet_data("Sales_Tracker")
         df_inv, _ = get_sheet_data("Inventory_Dispatch")
         
-        # Performance KPIs
         total_sales_val = df_sales['Total Sales Value'].astype(float).sum() if not df_sales.empty else 0
         total_dep_val = df_sales['Deposited Amount'].astype(float).sum() if not df_sales.empty else 0
         total_variance = df_sales['Variance'].astype(float).sum() if not df_sales.empty else 0
@@ -108,7 +98,6 @@ else:
             col3.metric("አጠቃላይ ልዩነት / ጉድለት (Total Variance)", f"{total_variance:,.2f} ETB", delta=f"{total_variance:,.2f} ETB")
             
         st.markdown("---")
-        
         tab1, tab2 = st.tabs(["📋 የሽያጭና የሂሳብ ማመሳከሪያ መዝገብ (Sales Tracker)", "🚛 የኢንቬንተሪ ጭነት መዝገብ (Inventory Dispatches)"])
         
         with tab1:
@@ -123,12 +112,10 @@ else:
             else:
                 st.info("በጉግል ሺት ላይ እስካሁን የተመዘገበ የጭነት መረጃ የለም።")
 
-    # -------------------------------------------------------------------
     # 2. INVENTORY DISPATCH
-    # -------------------------------------------------------------------
     elif role == "🏭 የኢንቬንተሪ ክፍል (Inventory Dispatch)":
         st.header("🏭 የኢንቬንተሪ ጭነት መመዝገቢያ (የተመረተ ምርት መላኪያ)")
-        st.info("ወደ መኪናዎች የተጫነውንና የተላከውን የሳሙና ካርቶን ብዛት እዚህ ጋር ይመዝግቡ። መረጃው ቀጥታ ጉግል ሺት ላይ ይገባል።")
+        st.info("ወደ መኪናዎች የተጫነውንና የተላከውን የሳሙና ካርቶን ብዛት እዚህ ጋር ይመዝግቡ።")
         
         _, worksheet_inv = get_sheet_data("Inventory_Dispatch")
         
@@ -152,12 +139,9 @@ else:
                 else:
                     st.error("❌ ወደ Google Sheets መጻፍ አልተቻለም።")
 
-    # -------------------------------------------------------------------
     # 3. SALES DEPARTMENT (ROBEL)
-    # -------------------------------------------------------------------
     elif role == "💰 የሽያጭ ክፍል - ሮቤል (Sales Department)":
         st.header("💰 የሽያጭና ባንክ ሪኮንሲሊየሽን መመዝገቢያ (ሮቤል)")
-        st.info("ሮቤል፡ የሸጡትን የሳሙና ብዛት እና ባንክ ያስገቡትን የገንዘብ መጠን ሲያስገቡ ሲስተሙ በራሱ አውቶማቲክ ስሌት ያሰላል።")
         
         df_inv_recent, worksheet_sales = get_sheet_data("Sales_Tracker")
         
@@ -182,13 +166,12 @@ else:
                 
             remarks = st.text_area("ማብራሪያ / የሽያጭ ማስታወሻ (Remarks)")
             
-            # --- Auto-Calculations Base on Settings ---
             calc_sales_200 = sold_200g * price_200g
             calc_sales_100 = sold_100g * price_100g
             calculated_total_sales = calc_sales_200 + calc_sales_100
             calculated_variance = dep_amount - calculated_total_sales
             
-            st.markdown("### 🧮 የሲስተም አውቶማቲክ ስሌት ቅድመ-እይታ (Calculations Preview)")
+            st.markdown("### 🧮 የሲስተም አውቶማቲክ ስሌት ቅድመ-እይታ")
             c_val1, c_val2, c_val3 = st.columns(3)
             c_val1.write(f"**የባለ 200ግ ሽያጭ ዋጋ:** {calc_sales_200:,.2f} ETB")
             c_val1.write(f"**የባለ 100ግ ሽያጭ ዋጋ:** {calc_sales_100:,.2f} ETB")
@@ -198,7 +181,7 @@ else:
                 c_val3.error(f"**ጉድለት (Shortage):** {calculated_variance:,.2f} ETB")
                 status = "ጉድለት አለበት (Shortage)"
             elif calculated_variance > 0:
-                c_val3.warning(f"****ብልጫ (Overage):** {calculated_variance:,.2f} ETB")
+                c_val3.warning(f"**ብልጫ (Overage):** {calculated_variance:,.2f} ETB")
                 status = "ብልጫ አለው (Overage)"
             else:
                 c_val3.success(f"**ልዩነት የለም (Balanced):** {calculated_variance:,.2f} ETB")
@@ -208,20 +191,17 @@ else:
             
             if submit_sales:
                 if worksheet_sales:
-                    # Append row to Google Sheets
                     new_sales_row = [
                         sales_date.strftime('%Y-%m-%d'), truck, int(recv_200g), int(recv_100g),
                         int(sold_200g), int(sold_100g), float(calculated_total_sales),
                         float(dep_amount), bank_name, float(calculated_variance), status, remarks
                     ]
                     worksheet_sales.append_row(new_sales_row)
-                    st.success("✅ ሮቤል፡ የሽያጭና የሂሳብ ማመሳከሪያ መረጃው በቀጥታ ወደ Google Sheets ተልኳል!")
+                    st.success("✅ የሽያጭና የሂሳብ ማመሳከሪያ መረጃው በቀጥታ ወደ Google Sheets ተልኳል!")
                 else:
                     st.error("❌ ወደ Google Sheets መፃፍ አልተቻለም።")
 
-    # -------------------------------------------------------------------
     # 4. SYSTEM SETTINGS
-    # -------------------------------------------------------------------
     elif role == "⚙️ የሲስተም ማስተካከያ (System Settings)":
         st.header("⚙️ የሲስተም ቅንብሮችና የዋጋ ማስተካከያ ማዕከል")
         st.warning("እዚህ ጋር የሚቀይሩት ዋጋ በቀጥታ ሮቤል ጋ ያለውን የሽያጭ አውቶማቲክ ማባዣ ፎርሙላ ይቀይረዋል።")
@@ -239,7 +219,6 @@ else:
                 banks_str = st.text_input("የባንክ ስሞች (በኮማ `,` በመለየት ያስገቡ)", value=",".join(bank_options))
                 
             if st.button("💾 ሙሉ አዲስ ቅንብሮችን ወደ Google Sheets አዘምን"):
-                # Clear and write fresh configurations
                 worksheet_settings.clear()
                 worksheet_settings.append_row(["Setting", "Value"])
                 worksheet_settings.append_row(["price_200g", str(new_p200)])
