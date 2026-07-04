@@ -20,11 +20,28 @@ PASSWORDS = {
 def get_gspread_client():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds_dict = dict(st.secrets["gcp_service_account"])
+        
+        # Access the section directly
+        gcp_creds = st.secrets["gcp_service_account"]
+        
+        # Explicitly convert to dictionary
+        creds_dict = {
+            "type": gcp_creds["type"],
+            "project_id": gcp_creds["project_id"],
+            "private_key_id": gcp_creds["private_key_id"],
+            "private_key": gcp_creds["private_key"].replace("\\n", "\n"), # THIS FIXES THE KEY FORMAT
+            "client_email": gcp_creds["client_email"],
+            "client_id": gcp_creds["client_id"],
+            "auth_uri": gcp_creds["auth_uri"],
+            "token_uri": gcp_creds["token_uri"],
+            "auth_provider_x509_cert_url": gcp_creds["auth_provider_x509_cert_url"],
+            "client_x509_cert_url": gcp_creds["client_x509_cert_url"]
+        }
+        
         creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
         return gspread.authorize(creds)
     except Exception as e:
-        st.error(f"❌ ከGoogle Sheets ጋር መገናኘት አልተቻለም። እባክዎ የSecrets ቅንብሩን ያረጋግጡ። ስህተት: {e}")
+        st.error(f"❌ Error: {e}")
         return None
 
 def get_sheet_data(sheet_name):
