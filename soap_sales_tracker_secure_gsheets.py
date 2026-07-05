@@ -20,16 +20,13 @@ PASSWORDS = {
 def get_gspread_client():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        
-        # Access secrets section
         gcp_creds = st.secrets["gcp_service_account"]
         
-        # Reconstruct and strictly fix the newline formatting issue
         creds_dict = {
             "type": gcp_creds["type"],
             "project_id": gcp_creds["project_id"],
             "private_key_id": gcp_creds["private_key_id"],
-            "private_key": gcp_creds["private_key"].replace("\\n", "\n"), # HERE IS THE FIX
+            "private_key": gcp_creds["private_key"].replace("\\n", "\n"),
             "client_email": gcp_creds["client_email"],
             "client_id": gcp_creds["client_id"],
             "auth_uri": gcp_creds["auth_uri"],
@@ -71,7 +68,6 @@ role = st.sidebar.radio(
      "⚙️ የሲስተም ማስተካከያ (System Settings)"]
 )
 
-# Password Check
 password_input = st.sidebar.text_input(f"የ {role} የይለፍ ቃል ያስገቡ", type="password")
 
 if not password_input:
@@ -92,7 +88,7 @@ else:
         price_200g = 1800.0
         price_100g = 1750.0
         truck_options = ["TRUCK-01 (አክሊሉ አሰፋ)", "TRUCK-02 (ዘመን)"]
-        bank_options = ["የኢትዮጵያ ንግድ ባንክ (CBE)", "አዋሽ ባንክ (Awash)", "ዳሽን ባንክ (Dashen)", "ወጋገን ባንክ (Wegagen)", "ህብረት ባንክ(Hibret)", "አቢሲኒያ ባንክ(BOA)", "አባይ ባንክ (Abay Bank)"]
+        bank_options = ["የኢትዮጵያ ንግድ ባንክ (CBE)", "አዋሽ ባንክ (Awash)", "ዳሽን ባንክ (Dashen)"]
 
     # 1. EXECUTIVE DASHBOARD
     if role == "📊 የኤግዚኪቲቭ ዳሽቦርድ (Executive Dashboard)":
@@ -131,9 +127,7 @@ else:
 
     # 2. INVENTORY DISPATCH
     elif role == "🏭 የኢንቬንተሪ ክፍል (Inventory Dispatch)":
-        st.header("🏭 የኢንቬንተሪ ጭነት መመዝገቢያ (የተመረተ ምርት መላኪያ)")
-        st.info("ወደ መኪናዎች የተጫነውንና የተላከውን የሳሙና ካርቶን ብዛት እዚህ ጋር ይመዝግቡ።")
-        
+        st.header("🏭 የኢንቬንተሪ ጭነት መመዝገቢያ")
         _, worksheet_inv = get_sheet_data("Inventory_Dispatch")
         
         with st.form("inventory_form", clear_on_submit=True):
@@ -142,8 +136,8 @@ else:
                 dispatch_date = st.date_input("የተጫነበት ቀን (Date)", datetime.today())
                 truck = st.selectbox("የመኪና / የሹፌር ኮድ (Select Truck)", truck_options)
             with col2:
-                qty_200g = st.number_input("ባለ 200ግ የተላከ ካርቶን (200g Ctn Sent)", min_value=0, step=1)
-                qty_100g = st.number_input("ባለ 100ግ የተላከ ካርቶን (100g Ctn Sent)", min_value=0, step=1)
+                qty_200g = st.number_input("ባለ 200ግ የተላከ ካርቶን", min_value=0, step=1)
+                qty_100g = st.number_input("ባለ 100ግ የተላከ ካርቶን", min_value=0, step=1)
                 
             remarks = st.text_area("ማብራሪያ / ሪማርክ (Remarks)")
             submit_inv = st.form_submit_button("🚀 የጭነት መረጃውን ወደ Google Sheets ላክ")
@@ -152,33 +146,25 @@ else:
                 if worksheet_inv:
                     new_row = [dispatch_date.strftime('%Y-%m-%d'), truck, int(qty_200g), int(qty_100g), remarks]
                     worksheet_inv.append_row(new_row)
-                    st.success(f"✅ ለ {truck} የተላከው የኢንቬንተሪ ጭነት በተሳካ ሁኔታ ወደ Google Sheets ተቀምጧል!")
-                else:
-                    st.error("❌ ወደ Google Sheets መጻፍ አልተቻለም።")
+                    st.success(f"✅ የጭነት መረጃው በተሳካ ሁኔታ ተቀምጧል!")
 
     # 3. SALES DEPARTMENT (ROBEL)
     elif role == "💰 የሽያጭ ክፍል - ሮቤል (Sales Department)":
         st.header("💰 የሽያጭና ባንክ ሪኮንሲሊየሽን መመዝገቢያ (ሮቤል)")
-        
-        df_inv_recent, worksheet_sales = get_sheet_data("Sales_Tracker")
+        _, worksheet_sales = get_sheet_data("Sales_Tracker")
         
         with st.form("sales_form", clear_on_submit=False):
             col1, col2 = st.columns(2)
             with col1:
                 sales_date = st.date_input("የሽያጭ ቀን (Sales Date)", datetime.today())
                 truck = st.selectbox("የመኪና / የሹፌር ኮድ (Select Truck)", truck_options)
-                
-                st.markdown("##### 📥 መኪናው ላይ የተቀበሉት ምርት (Received from Inventory)")
                 recv_200g = st.number_input("የተረከቡት ባለ 200ግ ካርቶን", min_value=0, step=1)
                 recv_100g = st.number_input("የተረከቡት ባለ 100ግ ካርቶን", min_value=0, step=1)
                 
             with col2:
-                st.markdown("##### 🛍️ በትክክል የተሸጠው ምርት ብዛት (Sold Quantity)")
                 sold_200g = st.number_input("የተሸጠ ባለ 200ግ ካርቶን", min_value=0, step=1)
                 sold_100g = st.number_input("የተሸጠ ባለ 100ግ ካርቶን", min_value=0, step=1)
-                
-                st.markdown("##### 🏦 የባንክና የሂሳብ መረጃ (Financial Details)")
-                dep_amount = st.number_input("ባንክ የገባው ጠቅላላ ብር (Deposited Amount ETB)", min_value=0.0, step=100.0)
+                dep_amount = st.number_input("ባንክ የገባው ጠቅላላ ብር (ETB)", min_value=0.0, step=100.0)
                 bank_name = st.selectbox("የባንክ ስም (Select Bank)", bank_options)
                 
             remarks = st.text_area("ማብራሪያ / የሽያጭ ማስታወሻ (Remarks)")
@@ -188,21 +174,9 @@ else:
             calculated_total_sales = calc_sales_200 + calc_sales_100
             calculated_variance = dep_amount - calculated_total_sales
             
-            st.markdown("### 🧮 የሲስተም አውቶማቲክ ስሌት ቅድመ-እይታ")
-            c_val1, c_val2, c_val3 = st.columns(3)
-            c_val1.write(f"**የባለ 200ግ ሽያጭ ዋጋ:** {calc_sales_200:,.2f} ETB")
-            c_val1.write(f"**የባለ 100ግ ሽያጭ ዋጋ:** {calc_sales_100:,.2f} ETB")
-            c_val2.info(f"**ሊመጣ የሚገባው ጠቅላላ የሽያጭ ዋጋ:** {calculated_total_sales:,.2f} ETB")
-            
-            if calculated_variance < 0:
-                c_val3.error(f"**गुድለት (Shortage):** {calculated_variance:,.2f} ETB")
-                status = "ጉድለት አለበት (Shortage)"
-            elif calculated_variance > 0:
-                c_val3.warning(f"**ብልጫ (Overage):** {calculated_variance:,.2f} ETB")
-                status = "ብልጫ አለው (Overage)"
-            else:
-                c_val3.success(f"**ልዩነት የለም (Balanced):** {calculated_variance:,.2f} ETB")
-                status = "የተስተካከለ (Balanced)"
+            if calculated_variance < 0: status = "ጉድለት አለበት (Shortage)"
+            elif calculated_variance > 0: status = "ብልጫ አለው (Overage)"
+            else: status = "የተስተካከለ (Balanced)"
                 
             submit_sales = st.form_submit_button("💾 የሽያጭ መረጃውን ወደ Google Sheets አስቀምጥ")
             
@@ -214,36 +188,153 @@ else:
                         float(dep_amount), bank_name, float(calculated_variance), status, remarks
                     ]
                     worksheet_sales.append_row(new_sales_row)
-                    st.success("✅ የሽያጭና የሂሳብ ማመሳከሪያ መረጃው በቀጥታ ወደ Google Sheets ተልኳል!")
-                else:
-                    st.error("❌ ወደ Google Sheets መፃፍ አልተቻለም።")
+                    st.success("✅ የሽያጭ መረጃው በቀጥታ ወደ Google Sheets ተልኳል!")
 
-    # 4. SYSTEM SETTINGS
+    # 4. SYSTEM SETTINGS & DATA CORRECTION (CRUD)
     elif role == "⚙️ የሲስተም ማስተካከያ (System Settings)":
-        st.header("⚙️ የሲስተም ቅንብሮችና የዋጋ ማስተካከያ ማዕከል")
-        st.warning("እዚህ ጋር የሚቀይሩት ዋጋ በቀጥታ ሮቤል ጋ ያለውን የሽያጭ አውቶማቲክ ማባዣ ፎርሙላ ይቀይረዋል።")
+        st.header("⚙️ የሲስተም ቅንብሮችና የተሳሳቱ መረጃዎች ማስተካከያ ማዕከል")
         
-        if worksheet_settings:
-            col1, col2 = st.columns(2)
-            with col1:
-                st.subheader("💰 የምርት መሸጫ ዋጋ ቅንብር")
-                new_p200 = st.number_input("ባለ 200ግ ሳሙና ካርቶን መሸጫ ዋጋ (ETB)", value=price_200g, step=50.0)
-                new_p100 = st.number_input("ባለ 100ግ ሳሙና ካርቶን መሸጫ ዋጋ (ETB)", value=price_100g, step=50.0)
+        tab_config, tab_edit_sales, tab_edit_inv = st.tabs([
+            "⚙️ የዋጋና መኪና ቅንብሮች", 
+            "✏️ የሽያጭ መዝገብ ማስተካከያ (Edit Sales)", 
+            "✏️ የኢንቬንተሪ መዝገብ ማስተካከያ (Edit Inventory)"
+        ])
+        
+        # TAB 1: General Settings
+        with tab_config:
+            if worksheet_settings:
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.subheader("💰 የምርት መሸጫ ዋጋ ቅንብር")
+                    new_p200 = st.number_input("ባለ 200ግ ሳሙና ካርቶን መሸጫ ዋጋ (ETB)", value=price_200g, step=50.0)
+                    new_p100 = st.number_input("ባለ 100ግ ሳሙና ካርቶን መሸጫ ዋጋ (ETB)", value=price_100g, step=50.0)
+                with col2:
+                    st.subheader("ዝርዝሮች (የመኪና እና ባንኮች)")
+                    truck_options_str = ",".join(truck_options)
+                    bank_options_str = ",".join(bank_options)
+                    trucks_str = st.text_input("የጭነት መኪናዎች (በኮማ `,` መለየት)", value=truck_options_str)
+                    banks_str = st.text_input("የባንክ ስሞች (በኮማ `,` መለየት)", value=bank_options_str)
+                    
+                if st.button("💾 ሙሉ አዲስ ቅንብሮችን ወደ Google Sheets አዘምን"):
+                    worksheet_settings.clear()
+                    worksheet_settings.append_row(["Setting", "Value"])
+                    worksheet_settings.append_row(["price_200g", str(new_p200)])
+                    worksheet_settings.append_row(["price_100g", str(new_p100)])
+                    worksheet_settings.append_row(["trucks", trucks_str])
+                    worksheet_settings.append_row(["banks", banks_str])
+                    st.success("✅ አዳዲስ ቅንብሮች በGoogle Sheets ላይ ተሻሽለዋል!")
+                    st.rerun()
+
+        # TAB 2: Edit/Delete Sales Tracker Data
+        with tab_edit_sales:
+            st.subheader("✏️ በሮቤል የተመዘገቡ የተሳሳቱ የሽያጭ መረጃዎችን ማስተካከያ")
+            df_sales_raw, worksheet_sales = get_sheet_data("Sales_Tracker")
+            
+            if not df_sales_raw.empty:
+                # Add human-readable Row ID (Google Sheets rows start at 2 after header)
+                df_sales_raw['Sheet_Row_ID'] = range(2, len(df_sales_raw) + 2)
                 
-            with col2:
-                st.subheader("ዝርዝሮች (የመኪና እና ባንኮች)")
-                truck_options_str = ",".join(truck_options)
-                bank_options_str = ",".join(bank_options)
-                trucks_str = st.text_input("የጭነት መኪናዎች (በኮማ `,` በመለየት ያስገቡ)", value=truck_options_str)
-                banks_str = st.text_input("የባንክ ስሞች (በኮማ `,` በመለየት ያስገቡ)", value=bank_options_str)
+                st.write("ማስተካከል ወይም መሰረዝ የሚፈልጉትን መስመር ይምረጡ፦")
+                row_to_edit = st.selectbox(
+                    "የሚስተካከለውን መዝገብ በቀን እና በመኪና ይምረጡ:",
+                    options=df_sales_raw.to_dict(orient='records'),
+                    format_func=lambda x: f"መስመር {x['Sheet_Row_ID']} | ቀን: {x['Sales Date']} | መኪና: {x['Truck Code']} | የተሸጠ 200ግ: {x['Sold 200g Ctn']} | ባንክ: {x['Deposited Amount']}"
+                )
                 
-            if st.button("💾 ሙሉ አዲስ ቅንብሮችን ወደ Google Sheets አዘምን"):
-                worksheet_settings.clear()
-                worksheet_settings.append_row(["Setting", "Value"])
-                worksheet_settings.append_row(["price_200g", str(new_p200)])
-                worksheet_settings.append_row(["price_100g", str(new_p100)])
-                worksheet_settings.append_row(["trucks", trucks_str])
-                worksheet_settings.append_row(["banks", banks_str])
-                st.success("✅ አዳዲስ የዋጋና የማዋቀሪያ ቅንብሮች በGoogle Sheets ላይ በተሳካ ሁኔታ ተሻሽለዋል!")
-        else:
-            st.error("❌ ከGoogle Sheets Settings ማህደር ጋር መገናኘት አልተቻለም።")
+                if row_to_edit:
+                    st.markdown("---")
+                    st.warning(f"⚠️ አሁን እየቀየሩ ያሉት መስመር ቁጥር **{row_to_edit['Sheet_Row_ID']}** ላይ ያለውን መረጃ ነው!")
+                    
+                    with st.form("edit_sales_form"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            e_date = st.text_input("ቀን (YYYY-MM-DD)", value=row_to_edit['Sales Date'])
+                            e_truck = st.selectbox("የመኪና ኮድ", truck_options, index=truck_options.index(row_to_edit['Truck Code']) if row_to_edit['Truck Code'] in truck_options else 0)
+                            e_recv_200 = st.number_input("የተረከቡት ባለ 200ግ", value=int(row_to_edit['Received 200g Ctn']), step=1)
+                            e_recv_100 = st.number_input("የተረከቡት ባለ 100ግ", value=int(row_to_edit['Received 100g Ctn']), step=1)
+                        with col2:
+                            e_sold_200 = st.number_input("የተሸጠ ባለ 200ግ", value=int(row_to_edit['Sold 200g Ctn']), step=1)
+                            e_sold_100 = st.number_input("የተሸጠ ባለ 100ግ", value=int(row_to_edit['Sold 100g Ctn']), step=1)
+                            e_dep = st.number_input("ባንክ የገባው ብር", value=float(row_to_edit['Deposited Amount']), step=100.0)
+                            e_bank = st.selectbox("የባንክ ስም", bank_options, index=bank_options.index(row_to_edit['Bank Name']) if row_to_edit['Bank Name'] in bank_options else 0)
+                        
+                        e_remarks = st.text_area("ማብራሪያ", value=row_to_edit['Remarks'])
+                        
+                        # Re-calculate formulas automatically upon update
+                        e_total_sales = (e_sold_200 * price_200g) + (e_sold_100 * price_100g)
+                        e_variance = e_dep - e_total_sales
+                        if e_variance < 0: e_status = "ጉድለት አለበት (Shortage)"
+                        elif e_variance > 0: e_status = "бልጫ አለው (Overage)"
+                        else: e_status = "የተስተካከለ (Balanced)"
+                        
+                        btn_update, btn_delete = st.columns(2)
+                        with btn_update:
+                            submit_update = st.form_submit_button("🔄 መረጃውን አስተካክልና በጉግል ሺት ላይ ቀይር")
+                        with btn_delete:
+                            submit_delete = st.form_submit_button("🗑️ ይህንን ሙሉ መዝገብ ከሲስተሙ ሰርዝ")
+                            
+                        if submit_update:
+                            updated_row = [
+                                e_date, e_truck, int(e_recv_200), int(e_recv_100),
+                                int(e_sold_200), int(e_sold_100), float(e_total_sales),
+                                float(e_dep), e_bank, float(e_variance), e_status, e_remarks
+                            ]
+                            # Update specific row range in Google Sheets
+                            worksheet_sales.update(range_name=f"A{row_to_edit['Sheet_Row_ID']}:L{row_to_edit['Sheet_Row_ID']}", values=[updated_row])
+                            st.success(f"✅ መስመር {row_to_edit['Sheet_Row_ID']} በተሳካ ሁኔታ ተሻሽሏል!")
+                            st.rerun()
+                            
+                        if submit_delete:
+                            worksheet_sales.delete_rows(row_to_edit['Sheet_Row_ID'])
+                            st.success(f"🗑️ መዝገቡ ሙሉ በሙሉ ተሰርዟል!")
+                            st.rerun()
+            else:
+                st.info("የሽያጭ ማህደሩ ባዶ ነው።")
+
+        # TAB 3: Edit/Delete Inventory Dispatch Data
+        with tab_edit_inv:
+            st.subheader("✏️ በኢንቬንተሪ ክፍል የተመዘገቡ የጭነት መረጃዎችን ማስተካከያ")
+            df_inv_raw, worksheet_inv = get_sheet_data("Inventory_Dispatch")
+            
+            if not df_inv_raw.empty:
+                df_inv_raw['Sheet_Row_ID'] = range(2, len(df_inv_raw) + 2)
+                
+                row_to_edit_inv = st.selectbox(
+                    "የሚስተካከለውን የጭነት መዝገብ ይምረጡ:",
+                    options=df_inv_raw.to_dict(orient='records'),
+                    format_func=lambda x: f"መስመር {x['Sheet_Row_ID']} | ቀን: {x['Dispatch Date']} | መኪና: {x['Truck Code']} | ባለ 200ግ: {x['200g Ctn Sent']} | ባለ 100ግ: {x['100g Ctn Sent']}"
+                )
+                
+                if row_to_edit_inv:
+                    st.markdown("---")
+                    st.warning(f"⚠️ አሁን እየቀየሩ ያሉት የኢንቬንተሪ መስመር ቁጥር **{row_to_edit_inv['Sheet_Row_ID']}** ነው!")
+                    
+                    with st.form("edit_inv_form"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            ei_date = st.text_input("ቀን (YYYY-MM-DD)", value=row_to_edit_inv['Dispatch Date'])
+                            ei_truck = st.selectbox("የመኪና ኮድ", truck_options, index=truck_options.index(row_to_edit_inv['Truck Code']) if row_to_edit_inv['Truck Code'] in truck_options else 0)
+                        with col2:
+                            ei_qty_200 = st.number_input("ባለ 200ግ የተላከ ካርቶን", value=int(row_to_edit_inv['200g Ctn Sent']), step=1)
+                            ei_qty_100 = st.number_input("ባለ 100ግ የተላከ ካርቶን", value=int(row_to_edit_inv['100g Ctn Sent']), step=1)
+                            
+                        ei_remarks = st.text_area("ማብራሪያ/ሪማርክ", value=row_to_edit_inv['Remarks'])
+                        
+                        btn_update_inv, btn_delete_inv = st.columns(2)
+                        with btn_update_inv:
+                            submit_update_inv = st.form_submit_button("🔄 የጭነት መረጃውን አስተካክል")
+                        with btn_delete_inv:
+                            submit_delete_inv = st.form_submit_button("🗑️ ይህንን የጭነት መዝገብ ሰርዝ")
+                            
+                        if submit_update_inv:
+                            updated_inv_row = [ei_date, ei_truck, int(ei_qty_200), int(ei_qty_100), ei_remarks]
+                            worksheet_inv.update(range_name=f"A{row_to_edit_inv['Sheet_Row_ID']}:E{row_to_edit_inv['Sheet_Row_ID']}", values=[updated_inv_row])
+                            st.success(f"✅ የኢንቬንተሪ መስመር {row_to_edit_inv['Sheet_Row_ID']} ተስተካክሏል!")
+                            st.rerun()
+                            
+                        if submit_delete_inv:
+                            worksheet_inv.delete_rows(row_to_edit_inv['Sheet_Row_ID'])
+                            st.success(f"🗑️ የጭነት መዝገቡ በተሳካ ሁኔታ ተሰርዟል!")
+                            st.rerun()
+            else:
+                st.info("የኢንቬንተሪ ማህደሩ ባዶ ነው።")
