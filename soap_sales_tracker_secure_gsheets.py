@@ -21,15 +21,15 @@ def get_gspread_client():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         
-        # Access the section directly
+        # Access secrets section
         gcp_creds = st.secrets["gcp_service_account"]
         
-        # Explicitly convert to dictionary
+        # Reconstruct and strictly fix the newline formatting issue
         creds_dict = {
             "type": gcp_creds["type"],
             "project_id": gcp_creds["project_id"],
             "private_key_id": gcp_creds["private_key_id"],
-            "private_key": gcp_creds["private_key"].replace("\\n", "\n"), # THIS FIXES THE KEY FORMAT
+            "private_key": gcp_creds["private_key"].replace("\\n", "\n"), # HERE IS THE FIX
             "client_email": gcp_creds["client_email"],
             "client_id": gcp_creds["client_id"],
             "auth_uri": gcp_creds["auth_uri"],
@@ -41,7 +41,7 @@ def get_gspread_client():
         creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
         return gspread.authorize(creds)
     except Exception as e:
-        st.error(f"❌ Error: {e}")
+        st.error(f"❌ ከGoogle Sheets ጋር መገናኘት አልተቻለም። ስህተት: {e}")
         return None
 
 def get_sheet_data(sheet_name):
@@ -195,7 +195,7 @@ else:
             c_val2.info(f"**ሊመጣ የሚገባው ጠቅላላ የሽያጭ ዋጋ:** {calculated_total_sales:,.2f} ETB")
             
             if calculated_variance < 0:
-                c_val3.error(f"**ጉድለት (Shortage):** {calculated_variance:,.2f} ETB")
+                c_val3.error(f"**गुድለት (Shortage):** {calculated_variance:,.2f} ETB")
                 status = "ጉድለት አለበት (Shortage)"
             elif calculated_variance > 0:
                 c_val3.warning(f"**ብልጫ (Overage):** {calculated_variance:,.2f} ETB")
@@ -232,8 +232,10 @@ else:
                 
             with col2:
                 st.subheader("ዝርዝሮች (የመኪና እና ባንኮች)")
-                trucks_str = st.text_input("የጭነት መኪናዎች (በኮማ `,` በመለየት ያስገቡ)", value=",".join(truck_options))
-                banks_str = st.text_input("የባንክ ስሞች (በኮማ `,` በመለየት ያስገቡ)", value=",".join(bank_options))
+                truck_options_str = ",".join(truck_options)
+                bank_options_str = ",".join(bank_options)
+                trucks_str = st.text_input("የጭነት መኪናዎች (በኮማ `,` በመለየት ያስገቡ)", value=truck_options_str)
+                banks_str = st.text_input("የባንክ ስሞች (በኮማ `,` በመለየት ያስገቡ)", value=bank_options_str)
                 
             if st.button("💾 ሙሉ አዲስ ቅንብሮችን ወደ Google Sheets አዘምን"):
                 worksheet_settings.clear()
