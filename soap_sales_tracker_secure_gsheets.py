@@ -9,10 +9,10 @@ st.set_page_config(page_title="መላ ሳሙና እና ዲተርጀንት ሽያ
 
 # 2. Define Default Passwords
 PASSWORDS = {
-    "📊 የኤግዚኪቲቭ ዳሽቦርድ (Executive Dashboard)": st.secrets.get("PASSWORD_EXEC", "exec123"),
+    "📊 Executive Dashboard": st.secrets.get("PASSWORD_EXEC", "exec123"),
     "🏭 የኢንቬንተሪ ክፍል (Inventory Dispatch)": st.secrets.get("PASSWORD_INV", "inv123"),
     "💰 የሽያጭ ክፍል - ሮቤል (Sales Department)": st.secrets.get("PASSWORD_ROBEL", "robel123"),
-    "⚙️ የሲስተም ማስተካከያ (System Settings)": st.secrets.get("PASSWORD_SETTINGS", "settings123")
+    "⚙️ System Settings": st.secrets.get("PASSWORD_SETTINGS", "settings123")
 }
 
 # 3. Google Sheets Connection Setup
@@ -55,17 +55,17 @@ def get_sheet_data(sheet_name):
     return pd.DataFrame(), None
 
 # --- Main Interface ---
-st.title("🧼 መላ (Mella) ሳሙና እና ዲተርጀንት ማከፋፈያና ሽያጭ መቆጣጠሪያ")
+st.title("🧼 መላ ሳሙና እና ዲተርጀንት ማከፋፈያና ሽያጭ መቆጣጠሪያ")
 st.markdown("---")
 
 # Role Selection Sidebar
 st.sidebar.header("🔐 የሥራ ክፍል መግቢያ (User Login)")
 role = st.sidebar.radio(
     "የሚገቡበትን የስራ ክፍል ይምረጡ:",
-    ["📊 የኤግዚኪቲቭ ዳሽቦርድ (Executive Dashboard)", 
+    ["📊 Executive Dashboard", 
      "🏭 የኢንቬንተሪ ክፍል (Inventory Dispatch)", 
      "💰 የሽያጭ ክፍል - ሮቤል (Sales Department)", 
-     "⚙️ የሲስተም ማስተካከያ (System Settings)"]
+     "⚙️ System Settings"]
 )
 
 password_input = st.sidebar.text_input(f"የ {role} የይለፍ ቃል ያስገቡ", type="password")
