@@ -5,14 +5,14 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 # 1. Page Configuration
-st.set_page_config(page_title="መላ ሳሙና እና ዲተርጀንት ሽያጭ መቆጣጠሪያ", layout="wide")
+st.set_page_config(page_title="መላ ሳሙና እና ዲተርጀንት ሽያጭ መመዝገቢያ", layout="wide")
 
-# 2. Define Default Passwords
+# 2. Define Default Passwords (With English-only keys for Executive and System Settings)
 PASSWORDS = {
-    "📊 Executive Dashboard": st.secrets.get("PASSWORD_EXEC", "exec123"),
+    "Executive Dashboard": st.secrets.get("PASSWORD_EXEC", "exec123"),
     "🏭 የኢንቬንተሪ ክፍል (Inventory Dispatch)": st.secrets.get("PASSWORD_INV", "inv123"),
     "💰 የሽያጭ ክፍል - ሮቤል (Sales Department)": st.secrets.get("PASSWORD_ROBEL", "robel123"),
-    "⚙️ System Settings": st.secrets.get("PASSWORD_SETTINGS", "settings123")
+    "System Settings": st.secrets.get("PASSWORD_SETTINGS", "settings123")
 }
 
 # 3. Google Sheets Connection Setup
@@ -55,17 +55,17 @@ def get_sheet_data(sheet_name):
     return pd.DataFrame(), None
 
 # --- Main Interface ---
-st.title("🧼 መላ ሳሙና እና ዲተርጀንት ማከፋፈያና ሽያጭ መቆጣጠሪያ")
+st.title("🧼 መላ ሳሙና እና ዲተርጀንት ማከፋፈያና ሽያጭ መመዝገቢያ")
 st.markdown("---")
 
 # Role Selection Sidebar
 st.sidebar.header("🔐 የሥራ ክፍል መግቢያ (User Login)")
 role = st.sidebar.radio(
     "የሚገቡበትን የስራ ክፍል ይምረጡ:",
-    ["📊 Executive Dashboard", 
+    ["Executive Dashboard", 
      "🏭 የኢንቬንተሪ ክፍል (Inventory Dispatch)", 
      "💰 የሽያጭ ክፍል - ሮቤል (Sales Department)", 
-     "⚙️ System Settings"]
+     "System Settings"]
 )
 
 password_input = st.sidebar.text_input(f"የ {role} የይለፍ ቃል ያስገቡ", type="password")
@@ -79,25 +79,41 @@ else:
     
     df_settings, worksheet_settings = get_sheet_data("System_Settings")
     
+    # CRASH-PROOF SETTINGS EXTRACTION
+    price_200g = 1800.0
+    price_100g = 1750.0
+    truck_options = ["TRUCK-01 (አክሊሉ አሰፋ)", "TRUCK-02 (ዘመን)"]
+    bank_options = ["የኢትዮጵያ ንግድ ባንክ (CBE)", "አዋሽ ባንክ (Awash)", "ዳሽን ባንክ (Dashen)", "ወጋገን ባንክ (Wegagen)", "ህብረት ባንክ(Hibret)", "አቢሲኒያ ባንክ(BOA)", "አባይ ባንክ (Abay Bank)"]
+
     if not df_settings.empty:
-        price_200g = float(df_settings.loc[df_settings['Setting'] == 'price_200g', 'Value'].values[0])
-        price_100g = float(df_settings.loc[df_settings['Setting'] == 'price_100g', 'Value'].values[0])
-        truck_options = df_settings.loc[df_settings['Setting'] == 'trucks', 'Value'].values[0].split(',')
-        bank_options = df_settings.loc[df_settings['Setting'] == 'banks', 'Value'].values[0].split(',')
-    else:
-        price_200g = 1800.0
-        price_100g = 1750.0
-        truck_options = ["TRUCK-01 (አክሊሉ አሰፋ)", "TRUCK-02 (ዘመን)"]
-        bank_options = ["የኢትዮጵያ ንግድ ባንክ (CBE)", "አዋሽ ባንክ (Awash)", "ዳሽን ባንክ (Dashen)"]
+        try:
+            if 'Setting' in df_settings.columns and 'Value' in df_settings.columns:
+                p200_rows = df_settings.loc[df_settings['Setting'] == 'price_200g', 'Value'].values
+                if len(p200_rows) > 0: price_200g = float(p200_rows[0])
+                
+                p100_rows = df_settings.loc[df_settings['Setting'] == 'price_100g', 'Value'].values
+                if len(p100_rows) > 0: price_100g = float(p100_rows[0])
+                
+                truck_rows = df_settings.loc[df_settings['Setting'] == 'trucks', 'Value'].values
+                if len(truck_rows) > 0: truck_options = truck_rows[0].split(',')
+                
+                bank_rows = df_settings.loc[df_settings['Setting'] == 'banks', 'Value'].values
+                if len(bank_rows) > 0: bank_options = bank_rows[0].split(',')
+            else:
+                price_200g = float(df_settings.iloc[0, 1])
+                price_100g = float(df_settings.iloc[1, 1])
+                truck_options = str(df_settings.iloc[2, 1]).split(',')
+                bank_options = str(df_settings.iloc[3, 1]).split(',')
+        except Exception:
+            pass
 
     # 1. EXECUTIVE DASHBOARD
-    if role == "📊 የኤግዚኪቲቭ ዳሽቦርድ (Executive Dashboard)":
+    if role == "Executive Dashboard":
         st.header("📈 የኩባንያው አጠቃላይ የሽያጭና እንቅስቃሴ ሪፖርት (Executive Panel)")
         
         df_sales, _ = get_sheet_data("Sales_Tracker")
         df_inv, _ = get_sheet_data("Inventory_Dispatch")
         
-        # Safe column summation
         total_sales_val = df_sales.iloc[:, 6].astype(float).sum() if not df_sales.empty and len(df_sales.columns) > 6 else 0
         total_dep_val = df_sales.iloc[:, 7].astype(float).sum() if not df_sales.empty and len(df_sales.columns) > 7 else 0
         total_variance = df_sales.iloc[:, 9].astype(float).sum() if not df_sales.empty and len(df_sales.columns) > 9 else 0
@@ -192,7 +208,7 @@ else:
                     st.success("✅ የሽያጭ መረጃው በቀጥታ ወደ Google Sheets ተልኳል!")
 
     # 4. SYSTEM SETTINGS & DATA CORRECTION (CRUD)
-    elif role == "⚙️ የሲስተም ማስተካከያ (System Settings)":
+    elif role == "System Settings":
         st.header("⚙️ የሲስተም ቅንብሮችና የተሳሳቱ መረጃዎች ማስተካከያ ማዕከል")
         
         tab_config, tab_edit_sales, tab_edit_inv = st.tabs([
@@ -225,15 +241,13 @@ else:
                     st.success("✅ አዳዲስ ቅንብሮች በGoogle Sheets ላይ ተሻሽለዋል!")
                     st.rerun()
 
-        # TAB 2: Edit/Delete Sales Tracker Data (CRASH-PROOF)
+        # TAB 2: Edit/Delete Sales Tracker Data
         with tab_edit_sales:
             st.subheader("✏️ በሮቤል የተመዘገቡ የተሳሳቱ የሽያጭ መረጃዎችን ማስተካከያ")
             df_sales_raw, worksheet_sales = get_sheet_data("Sales_Tracker")
             
             if not df_sales_raw.empty:
                 df_sales_raw['Sheet_Row_ID'] = range(2, len(df_sales_raw) + 2)
-                
-                # Conversion to records with fallback keys to strictly avoid KeyError
                 sales_options = df_sales_raw.to_dict(orient='records')
                 
                 st.write("ማስተካከል ወይም መሰረዝ የሚፈልጉትን መስመር ይምረጡ፦")
@@ -292,7 +306,7 @@ else:
             else:
                 st.info("የሽያጭ ማህደሩ ባዶ ነው።")
 
-        # TAB 3: Edit/Delete Inventory Dispatch Data (CRASH-PROOF)
+        # TAB 3: Edit/Delete Inventory Dispatch Data
         with tab_edit_inv:
             st.subheader("✏️ በኢንቬንተሪ ክፍል የተመዘገቡ የጭነት መረጃዎችን ማስተካከያ")
             df_inv_raw, worksheet_inv = get_sheet_data("Inventory_Dispatch")
