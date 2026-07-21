@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # 1. Page Configuration
 st.set_page_config(page_title="መላ ሳሙና እና ዲተርጀንት ሽያጭ መመዝገቢያ", layout="wide")
 
-# 2. Define Default Passwords (With English-only keys for Executive and System Settings)
+# 2. Define Passwords
 PASSWORDS = {
     "Executive Dashboard": st.secrets.get("PASSWORD_EXEC", "exec123"),
     "🏭 የኢንቬንተሪ ክፍል (Inventory Dispatch)": st.secrets.get("PASSWORD_INV", "inv123"),
@@ -99,11 +99,6 @@ else:
                 
                 bank_rows = df_settings.loc[df_settings['Setting'] == 'banks', 'Value'].values
                 if len(bank_rows) > 0: bank_options = bank_rows[0].split(',')
-            else:
-                price_200g = float(df_settings.iloc[0, 1])
-                price_100g = float(df_settings.iloc[1, 1])
-                truck_options = str(df_settings.iloc[2, 1]).split(',')
-                bank_options = str(df_settings.iloc[3, 1]).split(',')
         except Exception:
             pass
 
@@ -162,7 +157,8 @@ else:
             if submit_inv:
                 if worksheet_inv:
                     new_row = [dispatch_date.strftime('%Y-%m-%d'), truck, int(qty_200g), int(qty_100g), remarks]
-                    worksheet_inv.append_row(new_row)
+                    # Append strictly as a new row
+                    worksheet_inv.append_row(new_row, value_input_option='USER_ENTERED')
                     st.success(f"✅ የጭነት መረጃው በተሳካ ሁኔታ ተቀምጧል!")
 
     # 3. SALES DEPARTMENT (ROBEL)
@@ -170,7 +166,7 @@ else:
         st.header("💰 የሽያጭና ባንክ ሪኮንሲሊየሽን መመዝገቢያ (ሮቤል)")
         _, worksheet_sales = get_sheet_data("Sales_Tracker")
         
-        with st.form("sales_form", clear_on_submit=False):
+        with st.form("sales_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
             with col1:
                 sales_date = st.date_input("የሽያጭ ቀን (Sales Date)", datetime.today())
@@ -204,10 +200,11 @@ else:
                         int(sold_200g), int(sold_100g), float(calculated_total_sales),
                         float(dep_amount), bank_name, float(calculated_variance), status, remarks
                     ]
-                    worksheet_sales.append_row(new_sales_row)
-                    st.success("✅ የሽያጭ መረጃው በቀጥታ ወደ Google Sheets ተልኳል!")
+                    # Append strictly at the end of the sheet
+                    worksheet_sales.append_row(new_sales_row, value_input_option='USER_ENTERED')
+                    st.success("✅ የሽያጭ መረጃው በተሳካ ሁኔታ ተመዝግቧል!")
 
-    # 4. SYSTEM SETTINGS & DATA CORRECTION (CRUD)
+    # 4. SYSTEM SETTINGS & DATA CORRECTION
     elif role == "System Settings":
         st.header("⚙️ የሲስተም ቅንብሮችና የተሳሳቱ መረጃዎች ማስተካከያ ማዕከል")
         
@@ -233,11 +230,11 @@ else:
                     
                 if st.button("💾 ሙሉ አዲስ ቅንብሮችን ወደ Google Sheets አዘምን"):
                     worksheet_settings.clear()
-                    worksheet_settings.append_row(["Setting", "Value"])
-                    worksheet_settings.append_row(["price_200g", str(new_p200)])
-                    worksheet_settings.append_row(["price_100g", str(new_p100)])
-                    worksheet_settings.append_row(["trucks", trucks_str])
-                    worksheet_settings.append_row(["banks", banks_str])
+                    worksheet_settings.append_row(["Setting", "Value"], value_input_option='USER_ENTERED')
+                    worksheet_settings.append_row(["price_200g", str(new_p200)], value_input_option='USER_ENTERED')
+                    worksheet_settings.append_row(["price_100g", str(new_p100)], value_input_option='USER_ENTERED')
+                    worksheet_settings.append_row(["trucks", trucks_str], value_input_option='USER_ENTERED')
+                    worksheet_settings.append_row(["banks", banks_str], value_input_option='USER_ENTERED')
                     st.success("✅ አዳዲስ ቅንብሮች በGoogle Sheets ላይ ተሻሽለዋል!")
                     st.rerun()
 
