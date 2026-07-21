@@ -16,7 +16,6 @@ PASSWORDS = {
 }
 
 # 3. Google Sheets Connection Setup
-@st.cache_resource
 def get_gspread_client():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -41,6 +40,7 @@ def get_gspread_client():
         st.error(f"❌ ከGoogle Sheets ጋር መገናኘት አልተቻለም። ስህተት: {e}")
         return None
 
+# Fetch Data without Caching Issues
 def get_sheet_data(sheet_name):
     client = get_gspread_client()
     if client:
@@ -106,6 +106,10 @@ else:
     if role == "Executive Dashboard":
         st.header("📈 የኩባንያው አጠቃላይ የሽያጭና እንቅስቃሴ ሪፖርት (Executive Panel)")
         
+        # Manual refresh button
+        if st.button("🔄 መረጃዎችን ከGoogle Sheets አድስ (Refresh Data)"):
+            st.rerun()
+            
         df_sales, _ = get_sheet_data("Sales_Tracker")
         df_inv, _ = get_sheet_data("Inventory_Dispatch")
         
@@ -157,9 +161,12 @@ else:
             if submit_inv:
                 if worksheet_inv:
                     new_row = [dispatch_date.strftime('%Y-%m-%d'), truck, int(qty_200g), int(qty_100g), remarks]
-                    # Append strictly as a new row
-                    worksheet_inv.append_row(new_row, value_input_option='USER_ENTERED')
+                    # Append strictly as a new row using insert_row at the bottom
+                    all_vals = worksheet_inv.get_all_values()
+                    next_row = len(all_vals) + 1
+                    worksheet_inv.insert_row(new_row, index=next_row)
                     st.success(f"✅ የጭነት መረጃው በተሳካ ሁኔታ ተቀምጧል!")
+                    st.rerun()
 
     # 3. SALES DEPARTMENT (ROBEL)
     elif role == "💰 የሽያጭ ክፍል - ሮቤል (Sales Department)":
@@ -200,9 +207,12 @@ else:
                         int(sold_200g), int(sold_100g), float(calculated_total_sales),
                         float(dep_amount), bank_name, float(calculated_variance), status, remarks
                     ]
-                    # Append strictly at the end of the sheet
-                    worksheet_sales.append_row(new_sales_row, value_input_option='USER_ENTERED')
+                    # Append strictly at the calculated row position
+                    all_sales_vals = worksheet_sales.get_all_values()
+                    next_sales_row = len(all_sales_vals) + 1
+                    worksheet_sales.insert_row(new_sales_row, index=next_sales_row)
                     st.success("✅ የሽያጭ መረጃው በተሳካ ሁኔታ ተመዝግቧል!")
+                    st.rerun()
 
     # 4. SYSTEM SETTINGS & DATA CORRECTION
     elif role == "System Settings":
